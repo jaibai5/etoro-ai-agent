@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel AI Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent-buy: #22c55e;
+            --accent-sell: #ef4444;
+            --accent-ignore: #64748b;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            color: #38bdf8;
+        }
+
+        .status-bar {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        #error-message {
+            color: var(--accent-sell);
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .card-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .signal-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .signal-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+        }
+
+        .card-buy::before { background-color: var(--accent-buy); }
+        .card-sell::before { background-color: var(--accent-sell); }
+        .card-ignore::before { background-color: var(--accent-ignore); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .ticker {
+            font-weight: 800;
+            font-size: 1.1rem;
+            background: #334155;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .action-badge {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .badge-buy { background-color: rgba(34, 197, 94, 0.2); color: var(--accent-buy); }
+        .badge-sell { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-sell); }
+        .badge-ignore { background-color: rgba(100, 116, 139, 0.2); color: var(--accent-ignore); }
+
+        .timestamp {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .summary {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+        }
+
+        .meta-item {
+            color: var(--text-dim);
+        }
+
+        .meta-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .source-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 0.75rem;
+            word-break: break-all;
+        }
+
+        #loading {
+            margin-top: 50px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Sentinel AI Dashboard</h1>
+        <div class="status-bar" id="status">Lade Daten...</div>
+    </header>
+
+    <div id="error-message"></div>
+    <div id="loading">Initialisiere Radar...</div>
+    <div class="card-container" id="cards"></div>
+
+    <script>
+        // HIER DEINE DATEN ANPASSEN
+        const CSV_URL = 'signals_log.csv'; // Relativer Pfad im Repo
+
+        async function loadData() {
+            try {
+                // Cache-Buster hinzufügen, damit GitHub nicht alte Daten anzeigt
+                const response = await fetch(CSV_URL + '?t=' + new Date().getTime());
+                if (!response.ok) throw new Error('CSV Datei konnte nicht geladen werden.');
+                
+                const csvData = await response.text();
+                
+                Papa.parse(csvData, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        displayData(results.data.reverse()); // Neueste oben
+                    }
+                });
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                const errDiv = document.getElementById('error-message');
+                errDiv.textContent = 'Fehler: ' + error.message + ' - Stelle sicher, dass die signals_log.csv im gleichen Ordner liegt.';
+                errDiv.style.display = 'block';
+            }
+        }
+
+        function displayData(data) {
+            const container = document.getElementById('cards');
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('status');
+            
+            container.innerHTML = '';
+            loading.style.display = 'none';
+            status.textContent = 'Letztes Update: ' + new Date().toLocaleTimeString();
+
+            data.forEach(row => {
+                const action = (row['Handlung'] || 'IGNORIEREN').toUpperCase();
+                const region = row['Region'] || '-';
+                const ticker = row['Ticker'] || '-';
+                const sentiment = row['Sentiment'] || '0.0';
+                const model = row['KI-Modell'] || 'Unbekannt';
+                const timestamp = row['Zeitstempel (UTC)'] || '-';
+                const summary = row['Zusammenfassung'] || '';
+                const url = row['Original-Quelle'] || '#';
+
+                let cardClass = 'card-ignore';
+                let badgeClass = 'badge-ignore';
+                if (action === 'KAUFEN') { cardClass = 'card-buy'; badgeClass = 'badge-buy'; }
+                if (action === 'VERKAUFEN') { cardClass = 'card-sell'; badgeClass = 'badge-sell'; }
+
+                const card = document.createElement('div');
+                card.className = `signal-card ${cardClass}`;
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <span class="ticker">${ticker}</span>
+                            <div class="timestamp">${timestamp} UTC</div>
+                        </div>
+                        <span class="action-badge ${badgeClass}">${action}</span>
+                    </div>
+                    <div class="summary">${summary}</div>
+                    <div class="metadata">
+                        <div class="meta-item">Region: <span class="meta-value">${region}</span></div>
+                        <div class="meta-item">Sentiment: <span class="meta-value">${sentiment}</span></div>
+                        <div class="meta-item">Modell: <span class="meta-value">${model}</span></div>
+                    </div>
+                    <a href="${url}" target="_blank" class="source-link">🔗 Quelle öffnen</a>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Alle 30 Sekunden neu laden
+        setInterval(loadData, 30000);
+        loadData();
+    </script>
+</body>
+</html>
