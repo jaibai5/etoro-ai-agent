@@ -124,6 +124,8 @@ def run_collector_cycle():
         
         result = json.loads(raw_text)
         
+        # FIX: source_name extrahieren
+        source_name = result.get("source_name", "Unbekannt")
         ticker = result.get("ticker", "-")
         action = result.get("action", "IGNORIEREN")
         sentiment = result.get("sentiment_score", 0.0)
@@ -140,8 +142,9 @@ def run_collector_cycle():
                     if hasattr(chunk, 'web') and chunk.web:
                         echte_url = chunk.web.uri
                         break 
-                        
-        sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, echte_url, summary, used_model_name)
+        
+        # FIX: Alle 10 Argumente übergeben (source_name hinzugefügt)
+        sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, echte_url, summary, used_model_name)
 
     except Exception as e:
         print(f"❌ Verarbeitungsfehler: {e}")
