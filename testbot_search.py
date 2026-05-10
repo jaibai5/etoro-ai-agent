@@ -16,9 +16,9 @@ LOG_FILE = "signals_log.csv"
 
 # --- 2. MODEL-KASKADE ---
 MODELS_TO_TRY = [
-    "gemini-3.1-pro-preview", 
-    "gemini-2.0-flash-thinking-preview", 
-    "gemini-3.1-flash"
+    "gemini-3.1-pro-preview",           # Priorität 1: (Korrekt, aber aktuell limitiert)
+    "gemini-2.0-flash-thinking-exp",     # Priorität 2: Die korrekte ID für das Thinking-Modell
+    "gemini-2.5-flash"                  # Priorität 3: Die stabile Flash-ID für 2026
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used):
