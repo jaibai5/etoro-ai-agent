@@ -74,9 +74,9 @@ def run_collector_cycle():
     try:
         print("🔍 Durchsuche das Web und dokumentiere globalen Marktzustand...")
         
-        # KORREKTUR: Wir nutzen den stabilen Endpunkt-Alias 'gemini-pro'
+        # KORREKTUR: Wir nutzen den stabilen Endpunkt-Alias 'gemini-3.1-pro-preview'
         response = client.models.generate_content(
-            model="gemini-pro",
+            model="gemini-3.1-pro-preview",
             contents=prompt,
             config=config
         )
