@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import csv
 from datetime import datetime
@@ -8,18 +9,16 @@ from google.genai import types
 # --- 1. SYSTEM-PRÜFUNG ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    raise ValueError("Systemfehler: Umgebungsvariable 'GEMINI_API_KEY' fehlt.")
+    print("❌ FATALER FEHLER: Umgebungsvariable 'GEMINI_API_KEY' fehlt.")
+    sys.exit(1)  # Zwingt GitHub Actions sofort in einen roten Abbruch
 
-# Datei für die lückenlose Historie
 LOG_FILE = "signals_log.csv"
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, url, summary):
-    """Schreibt jeden Status lückenlos als neue Zeile in die CSV-Datei."""
     datei_existiert = os.path.isfile(LOG_FILE)
     
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        # Kopfzeile beim allerersten Durchlauf anlegen
         if not datei_existiert:
             writer.writerow(["Zeitstempel (UTC)", "Region", "Ticker", "Handlung", "Sentiment", "Alter (Min)", "Original-Quelle", "Zusammenfassung"])
         
@@ -29,7 +28,6 @@ def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter,
 def run_collector_cycle():
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte lückenlosen Tracking-Zyklus...")
 
-    # Initialisierung des SDKs mit nativer Google-Suche
     client = genai.Client(api_key=GEMINI_API_KEY)
     grounding_tool = types.Tool(google_search=types.GoogleSearch())
     
@@ -39,7 +37,6 @@ def run_collector_cycle():
         response_mime_type="application/json"
     )
 
-    # Der globale All-Tracking-Prompt
     prompt = """
     SYSTEM-ANWEISUNG:
     Du bist ein globaler Elite-Datenanalyst für den Finanzmarkt (Asien, Europa, USA und Krypto). Deine Aufgabe ist es, das Marktgeschehen LÜCKENLOS zu dokumentieren. Du musst auch dann einen vollständigen Bericht abgeben, wenn der Markt völlig ruhig ist oder du ein Signal ablehnst.
@@ -71,20 +68,21 @@ def run_collector_cycle():
 
     REGELN:
     - 'action': Setze dies NUR auf KAUFEN oder VERKAUFEN, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6 ist. Ansonsten MUSS hier 'IGNORIEREN' stehen.
-    - WICHTIG: Auch wenn du 'IGNORIEREN' wählst, fülle das JSON komplett aus (schreibe in 'news_summary' kurz, was du gesehen hast und warum du es ignorierst), damit die lückenlose Datenbank gefüttert wird.
+    - WICHTIG: Auch wenn du 'IGNORIEREN' wählst, fülle das JSON komplett aus, damit die lückenlose Datenbank gefüttert wird.
     """
 
     try:
         print("🔍 Durchsuche das Web und dokumentiere globalen Marktzustand...")
+        
+        # KORREKTUR: Wir nutzen den stabilen Endpunkt-Alias 'gemini-pro'
         response = client.models.generate_content(
-            model="gemini-3.1-pro",
+            model="gemini-pro",
             contents=prompt,
             config=config
         )
 
         result = json.loads(response.text.strip())
         
-        # Werte extrahieren (mit sicheren Fallbacks)
         ticker = result.get("ticker", "-")
         action = result.get("action", "IGNORIEREN")
         sentiment = result.get("sentiment_score", 0.0)
@@ -97,7 +95,6 @@ def run_collector_cycle():
         print(f"📊 PROTOKOLL-EINTRAG: {action} (Region: {region}, Ticker: {ticker})")
         print(f"📄 Begründung/Inhalt: {summary}")
         
-        # Echte URL fälschungssicher extrahieren
         echte_url = "Keine Web-URL indiziert (Markt ruhig/Kein Klick)"
         if response.candidates and response.candidates[0].grounding_metadata:
             metadata = response.candidates[0].grounding_metadata
@@ -105,16 +102,17 @@ def run_collector_cycle():
                 for chunk in metadata.grounding_chunks:
                     if hasattr(chunk, 'web') and chunk.web:
                         echte_url = chunk.web.uri
-                        break # Primäre Quelle sichern
+                        break 
                         
         print(f"🔗 Indizierte Quelle: {echte_url}")
         print("=" * 80)
 
-        # HIER IST DIE ÄNDERUNG: Wir speichern ab sofort JEDES Ergebnis!
         sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, echte_url, summary)
 
     except Exception as e:
-        print(f"❌ Fehler bei der API-Ausführung: {e}")
+        print(f"❌ KRITISCHER API-FEHLER: {e}")
+        # HIER IST DER FIX: Zwingt GitHub Actions bei einem Fehler sofort in den ROTEN ALARM!
+        sys.exit(1)
 
 if __name__ == "__main__":
     run_collector_cycle()
