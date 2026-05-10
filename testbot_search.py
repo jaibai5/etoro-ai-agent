@@ -23,14 +23,18 @@ MODELS_TO_TRY = [
     "gemini-flash-latest"        # Stufe 5: Der Notausgang
 ]
 
-def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used):
+def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used):
+    """Speichert das Signal inklusive der erkannten Quelle in der CSV."""
     datei_existiert = os.path.isfile(LOG_FILE)
+    
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         if not datei_existiert:
-            writer.writerow(["Zeitstempel (UTC)", "Region", "Ticker", "Handlung", "Sentiment", "Alter (Min)", "Original-Quelle", "Zusammenfassung", "KI-Modell"])
-        writer.writerow([zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used])
-    print(f"💾 Log-Eintrag ({model_used}) erfolgreich gesichert.")
+            # Header mit der neuen Spalte "Quelle"
+            writer.writerow(["Zeitstempel (UTC)", "Region", "Ticker", "Handlung", "Sentiment", "Alter (Min)", "Quelle", "Original-Quelle", "Zusammenfassung", "KI-Modell"])
+        
+        writer.writerow([zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used])
+    print(f"💾 Log-Eintrag ({model_used}) von Quelle '{source_name}' gesichert.")
 
 def run_collector_cycle():
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte globalen Radar-Zyklus...")
@@ -63,17 +67,18 @@ def run_collector_cycle():
       * Europa-Assets (z.B. EWG, SAP) entladen sich ab 09:00 Uhr morgens (MEZ).
       * US-Assets (z.B. NVDA, SPY) entladen sich ab 15:30 Uhr (MEZ).
 
-    SCHRITT 4: JSON-AUSGABE
+    SCHRITT 4: JSON-AUSGABE (ZWINGENDES FORMAT)
     Antworte AUSSCHLIESSLICH in diesem JSON-Format:
     {
         "signal_found": true,
-        "market_region": "ASIA" oder "EUROPE" oder "USA" oder "CRYPTO" oder "NONE",
-        "ticker": "OFFIZIELLES_SYMBOL" oder "-", 
-        "news_summary": "ANALYSE-ERGEBNIS: [Fakten der News] + [Warum das marktrelevant ist]",
+        "market_region": "ASIA" | "EUROPE" | "USA" | "CRYPTO" | "NONE",
+        "ticker": "SYMBOL",
+        "source_name": "NAME DER NEWS-QUELLE",
+        "news_summary": "ANALYSE: [Fakten] + [Relevanz]",
         "age_in_minutes": 0, 
         "sentiment_score": 0.0, 
         "confidence": 0,
-        "action": "KAUFEN" oder "VERKAUFEN" oder "IGNORIEREN"
+        "action": "KAUFEN" | "VERKAUFEN" | "IGNORIEREN"
     }
 
     REGELN:
