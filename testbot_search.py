@@ -24,17 +24,15 @@ MODELS_TO_TRY = [
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used):
-    """Speichert das Signal inklusive der erkannten Quelle in der CSV."""
+    """Speichert das Signal mit Anführungszeichen um alle Felder (Fix für GitHub-Tabelle)."""
     datei_existiert = os.path.isfile(LOG_FILE)
-    
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
+        # quotechar='"' und QUOTE_ALL sorgen für eine saubere Tabellenstruktur in GitHub
+        writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
         if not datei_existiert:
-            # Header mit der neuen Spalte "Quelle"
             writer.writerow(["Zeitstempel (UTC)", "Region", "Ticker", "Handlung", "Sentiment", "Alter (Min)", "Quelle", "Original-Quelle", "Zusammenfassung", "KI-Modell"])
-        
         writer.writerow([zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used])
-    print(f"💾 Log-Eintrag ({model_used}) von Quelle '{source_name}' gesichert.")
+    print(f"💾 Log-Eintrag ({model_used}) gesichert.")
 
 def run_collector_cycle():
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte globalen Radar-Zyklus...")
@@ -47,6 +45,8 @@ def run_collector_cycle():
     SYSTEM-ANWEISUNG:
     Du bist ein globaler Elite-Datenanalyst für den Finanzmarkt (Asien, Europa, USA und Krypto). Deine Aufgabe ist es, das Marktgeschehen LÜCKENLOS zu dokumentieren. Du musst auch dann einen vollständigen Bericht abgeben, wenn der Markt völlig ruhig ist oder du ein Signal ablehnst.
 
+    Erstelle die Zusammenfassung (news_summary) auf deutsch.
+    
     SCHRITT 1: DIE GLOBALE LIVE-SUCHE & ANALYSE
     Durchsuche Google Search nach den massivsten Eilmeldungen und politischen Treibern. Beachte die globalen Zeitzonen:
     1. ASIEN: News zum Trump-Xi-Gipfel, TSMC, Samsung, China-Handel oder dem Nikkei/Kospi.
