@@ -14,11 +14,13 @@ if not GEMINI_API_KEY:
 
 LOG_FILE = "signals_log.csv"
 
-# --- 2. MODEL-KASKADE (Exakt nach deiner Liste) ---
+# --- 2. DIE POWER-KASKADE (5 Stufen für maximale Ausfallsicherheit) ---
 MODELS_TO_TRY = [
-    "gemini-3.1-pro-preview",    # Prio 1: Dein 3.1 Pro (Aktuell im Limit)
-    "gemini-2.5-pro",            # Prio 2: Enorme Tiefe & stabil (Dein "Thinking"-Ersatz)
-    "gemini-2.5-flash"           # Prio 3: Hohe Quote & zuverlässig
+    "gemini-pro-latest",         # Stufe 1: Der stabile Pro-Standard-Endpunkt
+    "gemini-3.1-pro-preview",    # Stufe 2: Das neueste Spitzenmodell
+    "gemini-2.5-pro",            # Stufe 3: Die bewährte 2026-Logik-Maschine
+    "gemini-2.5-flash",          # Stufe 4: Schnell & reflektierend (Fallback)
+    "gemini-flash-latest"        # Stufe 5: Der Notausgang
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used):
@@ -28,38 +30,46 @@ def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter,
         if not datei_existiert:
             writer.writerow(["Zeitstempel (UTC)", "Region", "Ticker", "Handlung", "Sentiment", "Alter (Min)", "Original-Quelle", "Zusammenfassung", "KI-Modell"])
         writer.writerow([zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used])
-    print(f"💾 Log-Eintrag ({model_used}) gesichert.")
+    print(f"💾 Log-Eintrag ({model_used}) erfolgreich gesichert.")
 
 def run_collector_cycle():
-    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte Zyklus mit Modell-Fallback...")
+    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte globalen Radar-Zyklus...")
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     grounding_tool = types.Tool(google_search=types.GoogleSearch())
     
-    # --- DEIN ORIGINAL-PROMPT (KOMPLETT UNVERÄNDERT) ---
+    # --- DEIN VOLLSTÄNDIGER, UNGEKÜRZTER GLOBAL-RADAR PROMPT ---
     prompt = """
     SYSTEM-ANWEISUNG:
     Du bist ein globaler Elite-Datenanalyst für den Finanzmarkt (Asien, Europa, USA und Krypto). Deine Aufgabe ist es, das Marktgeschehen LÜCKENLOS zu dokumentieren. Du musst auch dann einen vollständigen Bericht abgeben, wenn der Markt völlig ruhig ist oder du ein Signal ablehnst.
-    
-    SCHRITT 1: DIE GLOBALE LIVE-SUCHE
-    Durchsuche Google Search nach den massivsten Eilmeldungen und politischen Treibern in Asien, Europa, den USA oder am Krypto-Spotmarkt.
 
-    SCHRITT 2: DIE WOCHENEND- & LÜCKEN-LOGIK (GAP RISK)
+    SCHRITT 1: DIE GLOBALE LIVE-SUCHE & ANALYSE
+    Durchsuche Google Search nach den massivsten Eilmeldungen und politischen Treibern. Beachte die globalen Zeitzonen:
+    1. ASIEN: News zum Trump-Xi-Gipfel, TSMC, Samsung, China-Handel oder dem Nikkei/Kospi.
+    2. EUROPA: Eilmeldungen zu europäischen Banken, DAX-Konzernen, EZB-Zinsen oder geopolitischen Auswirkungen auf den Export.
+    3. USA: Offizielle Statements von Donald Trump, US-Makrodaten oder Tech-Giganten (Nvidia, Apple, etc.).
+    4. KRYPTO: Der 24/7 Spotmarkt (Hacks, ETF-Flows, regulatorische Urteile).
+
+    SCHRITT 2: SELBST-REFLEKTION & TIEFENPRÜFUNG
+    Bevor du eine Entscheidung triffst, prüfe kritisch:
+    - Ist diese News wirklich kursrelevant für eine Markteröffnung (Gap Risk)?
+    - Handelt es sich um Fakten oder nur um Analysten-Meinungen/Preisprognosen? (Prognosen = IGNORIEREN).
+    - Gibt es eine Bestätigung durch offizielle Stellen (Zentralbanken, Regierungen, CEOs)?
+
+    SCHRITT 3: DIE WOCHENEND- & LÜCKEN-LOGIK (GAP RISK)
     - Krypto-Assets (BTC, ETH): Handeln 24/7. Hier gilt immer ein strikter 60-Minuten-Verfall.
-    - Regulierte Aktien/ETFs weltweit: Wenn heute MONTAG ist (oder Sonntagabend vor den asiatischen Öffnungen), ignoriere das Alter der Nachricht. Meldungen vom gesamten Wochenende MÜSSEN akkumuliert werden.
-      * Asien-Assets entladen sich ab ca. 02:00 Uhr nachts (MEZ).
-      * Europa-Assets entladen sich ab 09:00 Uhr morgens (MEZ).
-      * US-Assets entladen sich ab 15:30 Uhr (MEZ).
+    - Regulierte Aktien/ETFs weltweit: Wenn heute MONTAG ist (oder Sonntagabend vor den asiatischen Öffnungen), ignoriere das Alter der Nachricht. Meldungen vom gesamten Wochenende MÜSSEN akkumuliert werden, da sich die Lücke erst zur jeweiligen lokalen Eröffnung entladen kann:
+      * Asien-Assets (z.B. TSM, FXI) entladen sich ab ca. 02:00 Uhr nachts (MEZ).
+      * Europa-Assets (z.B. EWG, SAP) entladen sich ab 09:00 Uhr morgens (MEZ).
+      * US-Assets (z.B. NVDA, SPY) entladen sich ab 15:30 Uhr (MEZ).
 
-    SCHRITT 3: JSON-AUSGABE
-    Bewerte die aktuelle Lage. Gibt es eine starke Eilmeldung, extrahiere sie. Ist der Markt ruhig, unspektakulär oder voller Clickbait, dokumentiere exakt diesen Zustand.
-    
+    SCHRITT 4: JSON-AUSGABE
     Antworte AUSSCHLIESSLICH in diesem JSON-Format:
     {
         "signal_found": true,
         "market_region": "ASIA" oder "EUROPE" oder "USA" oder "CRYPTO" oder "NONE",
         "ticker": "OFFIZIELLES_SYMBOL" oder "-", 
-        "news_summary": "Faktenbasierte Zusammenfassung der News ODER eine kurze Begründung, warum der Markt gerade ruhig ist / die News ignoriert werden.",
+        "news_summary": "ANALYSE-ERGEBNIS: [Fakten der News] + [Warum das marktrelevant ist]",
         "age_in_minutes": 0, 
         "sentiment_score": 0.0, 
         "confidence": 0,
@@ -68,7 +78,7 @@ def run_collector_cycle():
 
     REGELN:
     - 'action': Setze dies NUR auf KAUFEN oder VERKAUFEN, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6 ist. Ansonsten MUSS hier 'IGNORIEREN' stehen.
-    - WICHTIG: Auch wenn du 'IGNORIEREN' wählst, fülle das JSON komplett aus, damit die lückenlose Datenbank gefüttert wird.
+    - WICHTIG: Auch wenn du 'IGNORIEREN' wählst, fülle das JSON komplett aus, damit die Datenbank lückenlos bleibt.
     """
 
     response = None
@@ -78,7 +88,7 @@ def run_collector_cycle():
         try:
             print(f"🤖 Versuche Modell: {model_name}...")
             
-            # JSON-Modus nur bei Pro-Modellen (3.1 und 2.5) erzwingen
+            # JSON-Modus für alle Pro-Modelle erzwingen
             mime_type = "application/json" if "pro" in model_name else "text/plain"
             
             config = types.GenerateContentConfig(
@@ -95,17 +105,15 @@ def run_collector_cycle():
             used_model_name = model_name
             break 
         except Exception as e:
-            # Wir fangen Ressourcen-Limits (429) und andere Fehler ab
-            print(f"⚠️ {model_name} nicht verfügbar: {e}")
+            print(f"⚠️ {model_name} nicht verfügbar (Limit/Fehler): {e}")
             continue
 
     if not response or not used_model_name:
-        print("❌ Alle Modelle in deiner Liste sind aktuell nicht erreichbar.")
+        print("❌ KRITISCH: Alle 5 Modelle der Kaskade sind fehlgeschlagen.")
         sys.exit(1)
 
     try:
         raw_text = response.text.strip()
-        # Falls ein Fallback-Modell (text/plain) Markdown nutzt, säubern wir es
         if "```json" in raw_text:
             raw_text = raw_text.split("```json")[1].split("```")[0].strip()
         
@@ -131,7 +139,7 @@ def run_collector_cycle():
         sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, echte_url, summary, used_model_name)
 
     except Exception as e:
-        print(f"❌ Fehler bei der JSON-Verarbeitung: {e}")
+        print(f"❌ Verarbeitungsfehler: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
