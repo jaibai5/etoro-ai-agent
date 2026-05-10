@@ -32,6 +32,12 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git add signals_log.csv
-          # Prüfen, ob sich die Datei geändert hat (neues Signal). Wenn ja, committen.
-          git diff --quiet && git diff --staged --quiet || (git commit -m "📊 Neues Marktsignal protokolliert" && git push)
+          
+          # 1. Prüfen, ob die CSV-Datei existiert
+          if [ -f signals_log.csv ]; then
+            git add signals_log.csv
+            # 2. Prüfen, ob neue Zeilen dazugekommen sind. Wenn ja, hochladen.
+            git diff --quiet && git diff --staged --quiet || (git commit -m "📊 Neues Marktsignal protokolliert" && git push)
+          else
+            echo "ℹ️ Markt ruhig (Sonntag): Keine CSV-Datei zum Speichern vorhanden."
+          fi
