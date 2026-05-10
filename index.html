@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sentinel AI Dashboard</title>
+    <!-- Korrigierter Link zur PapaParse Bibliothek -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root {
@@ -16,10 +16,11 @@
             --accent-sell: #ef4444;
             --accent-ignore: #64748b;
             --border-color: #334155;
+            --source-bg: #0ea5e9;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
@@ -38,25 +39,14 @@
 
         h1 {
             font-size: 1.5rem;
-            margin-bottom: 5px;
+            margin: 0;
             color: #38bdf8;
         }
 
         .status-bar {
             font-size: 0.8rem;
             color: var(--text-dim);
-            margin-bottom: 10px;
-        }
-
-        #error-message {
-            color: var(--accent-sell);
-            background: rgba(239, 68, 68, 0.1);
-            padding: 10px;
-            border-radius: 8px;
-            display: none;
-            margin-bottom: 15px;
-            width: 100%;
-            max-width: 800px;
+            margin-top: 5px;
         }
 
         .card-container {
@@ -73,17 +63,15 @@
             border-radius: 12px;
             padding: 15px;
             position: relative;
-            overflow: hidden;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
         .signal-card::before {
             content: '';
             position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
         }
 
         .card-buy::before { background-color: var(--accent-buy); }
@@ -94,161 +82,169 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ticker-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .ticker {
             font-weight: 800;
-            font-size: 1.1rem;
-            background: #334155;
-            padding: 2px 8px;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+
+        .source-tag {
+            background: var(--source-bg);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 2px 6px;
             border-radius: 4px;
+            text-transform: uppercase;
         }
 
         .action-badge {
             font-weight: bold;
-            text-transform: uppercase;
             font-size: 0.75rem;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
+            text-transform: uppercase;
         }
 
-        .badge-buy { background-color: rgba(34, 197, 94, 0.2); color: var(--accent-buy); }
-        .badge-sell { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-sell); }
-        .badge-ignore { background-color: rgba(100, 116, 139, 0.2); color: var(--accent-ignore); }
-
-        .timestamp {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
+        .badge-buy { background: rgba(34, 197, 94, 0.2); color: var(--accent-buy); border: 1px solid var(--accent-buy); }
+        .badge-sell { background: rgba(239, 68, 68, 0.2); color: var(--accent-sell); border: 1px solid var(--accent-sell); }
+        .badge-ignore { background: rgba(100, 116, 139, 0.1); color: var(--text-dim); border: 1px solid var(--border-color); }
 
         .summary {
-            font-size: 0.9rem;
-            line-height: 1.4;
-            margin-bottom: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            color: #e2e8f0;
         }
 
-        .metadata {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .footer-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 0.75rem;
             border-top: 1px solid var(--border-color);
             padding-top: 10px;
-        }
-
-        .meta-item {
             color: var(--text-dim);
-        }
-
-        .meta-value {
-            color: var(--text-main);
-            font-weight: 600;
         }
 
         .source-link {
-            display: inline-block;
-            margin-top: 10px;
             color: #38bdf8;
             text-decoration: none;
-            font-size: 0.75rem;
-            word-break: break-all;
+            font-weight: 600;
         }
 
-        #loading {
-            margin-top: 50px;
-            color: var(--text-dim);
-        }
+        #loading { margin-top: 50px; color: var(--text-dim); }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Sentinel AI Dashboard</h1>
-        <div class="status-bar" id="status">Lade Daten...</div>
+        <h1>Sentinel Radar</h1>
+        <div class="status-bar" id="status">Verbinde mit Satellit...</div>
     </header>
 
-    <div id="error-message"></div>
-    <div id="loading">Initialisiere Radar...</div>
+    <div id="loading">Lade Marktdaten...</div>
     <div class="card-container" id="cards"></div>
 
     <script>
-        // HIER DEINE DATEN ANPASSEN
-        const CSV_URL = 'signals_log.csv'; // Relativer Pfad im Repo
+        const CSV_FILENAME = 'signals_log.csv';
 
         async function loadData() {
             try {
-                // Cache-Buster hinzufügen, damit GitHub nicht alte Daten anzeigt
-                const response = await fetch(CSV_URL + '?t=' + new Date().getTime());
-                if (!response.ok) throw new Error('CSV Datei konnte nicht geladen werden.');
+                // Erstellt eine absolute URL basierend auf dem aktuellen Standort, 
+                // um Parsing-Fehler in geschützten Umgebungen zu vermeiden.
+                let fetchUrl;
+                if (window.location.protocol === 'blob:') {
+                    // Fallback für Blob-Umgebungen (Vorschau)
+                    fetchUrl = CSV_FILENAME + '?t=' + Date.now();
+                } else {
+                    const baseUrl = window.location.href.split('?')[0].split('#')[0];
+                    const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+                    fetchUrl = new URL(CSV_FILENAME, baseDir).href + '?t=' + Date.now();
+                }
+
+                const response = await fetch(fetchUrl);
+                if (!response.ok) throw new Error('Datenquelle konnte nicht erreicht werden');
+                const csvText = await response.text();
                 
-                const csvData = await response.text();
-                
-                Papa.parse(csvData, {
+                if (typeof Papa === 'undefined') {
+                    throw new Error('PapaParse Bibliothek wurde nicht geladen');
+                }
+
+                Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        displayData(results.data.reverse()); // Neueste oben
+                        renderCards(results.data.reverse());
                     }
                 });
-            } catch (error) {
-                document.getElementById('loading').style.display = 'none';
-                const errDiv = document.getElementById('error-message');
-                errDiv.textContent = 'Fehler: ' + error.message + ' - Stelle sicher, dass die signals_log.csv im gleichen Ordner liegt.';
-                errDiv.style.display = 'block';
+            } catch (err) {
+                console.error('Radar-Fehler:', err);
+                document.getElementById('status').textContent = '⚠️ Fehler: ' + err.message;
             }
         }
 
-        function displayData(data) {
+        function renderCards(data) {
             const container = document.getElementById('cards');
             const loading = document.getElementById('loading');
             const status = document.getElementById('status');
             
-            container.innerHTML = '';
             loading.style.display = 'none';
-            status.textContent = 'Letztes Update: ' + new Date().toLocaleTimeString();
+            container.innerHTML = '';
+            status.textContent = 'Letzter Scan: ' + new Date().toLocaleTimeString();
+
+            if (data.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-dim)">Keine Daten in der CSV gefunden.</div>';
+                return;
+            }
 
             data.forEach(row => {
                 const action = (row['Handlung'] || 'IGNORIEREN').toUpperCase();
-                const region = row['Region'] || '-';
                 const ticker = row['Ticker'] || '-';
-                const sentiment = row['Sentiment'] || '0.0';
-                const model = row['KI-Modell'] || 'Unbekannt';
-                const timestamp = row['Zeitstempel (UTC)'] || '-';
-                const summary = row['Zusammenfassung'] || '';
+                const source = row['Quelle'] || 'Unbekannt';
                 const url = row['Original-Quelle'] || '#';
+                const summary = row['Zusammenfassung'] || '';
+                const time = row['Zeitstempel (UTC)'] || '';
+                const model = row['KI-Modell'] || '';
 
-                let cardClass = 'card-ignore';
-                let badgeClass = 'badge-ignore';
-                if (action === 'KAUFEN') { cardClass = 'card-buy'; badgeClass = 'badge-buy'; }
-                if (action === 'VERKAUFEN') { cardClass = 'card-sell'; badgeClass = 'badge-sell'; }
+                let cardType = 'card-ignore';
+                let badgeType = 'badge-ignore';
+                if (action === 'KAUFEN') { cardType = 'card-buy'; badgeType = 'badge-buy'; }
+                if (action === 'VERKAUFEN') { cardType = 'card-sell'; badgeType = 'badge-sell'; }
 
                 const card = document.createElement('div');
-                card.className = `signal-card ${cardClass}`;
-                
+                card.className = `signal-card ${cardType}`;
                 card.innerHTML = `
                     <div class="card-header">
-                        <div>
+                        <div class="ticker-box">
                             <span class="ticker">${ticker}</span>
-                            <div class="timestamp">${timestamp} UTC</div>
+                            <span class="source-tag">${source}</span>
                         </div>
-                        <span class="action-badge ${badgeClass}">${action}</span>
+                        <span class="action-badge ${badgeType}">${action}</span>
                     </div>
                     <div class="summary">${summary}</div>
-                    <div class="metadata">
-                        <div class="meta-item">Region: <span class="meta-value">${region}</span></div>
-                        <div class="meta-item">Sentiment: <span class="meta-value">${sentiment}</span></div>
-                        <div class="meta-item">Modell: <span class="meta-value">${model}</span></div>
+                    <div class="footer-meta">
+                        <span>${time} UTC | ${model}</span>
+                        <a href="${url}" target="_blank" class="source-link">Quelle ↗</a>
                     </div>
-                    <a href="${url}" target="_blank" class="source-link">🔗 Quelle öffnen</a>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // Alle 30 Sekunden neu laden
-        setInterval(loadData, 30000);
+        // Initialer Start
         loadData();
+        // Alle 30 Sekunden aktualisieren
+        setInterval(loadData, 30000);
     </script>
 </body>
 </html>
