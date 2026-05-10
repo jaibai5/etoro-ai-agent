@@ -16,7 +16,11 @@ LOG_FILE = "signals_log.csv"
 
 # --- 2. DIE POWER-KASKADE (5 Stufen für maximale Ausfallsicherheit) ---
 MODELS_TO_TRY = [
-    "gemini-2.5-flash",          # Stufe 5: Schnell & reflektierend (Fallback)
+    "gemini-pro-latest",         # Stufe 1: Der stabile Pro-Standard-Endpunkt
+    "gemini-3.1-pro-preview",    # Stufe 2: Das neueste Spitzenmodell
+    "gemini-2.5-pro",            # Stufe 3: Die bewährte 2026-Logik-Maschine
+    "gemini-2.5-flash",          # Stufe 4: Schnell & reflektierend (Fallback)
+    "gemini-flash-latest"        # Stufe 5: Der Notausgang
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used):
@@ -85,7 +89,7 @@ def run_collector_cycle():
     {
         "signal_found": true,
         "market_region": "ASIA" | "EUROPE" | "USA" | "CRYPTO" | "NONE",
-        "ticker": "SYMBOL",
+        "ticker": "EXAKTES BÖRSENKÜRZEL (z.B. TSLA, NVDA, BTC, SPY)",
         "source_name": "NAME DER NEWS-QUELLE (Muss aus der Whitelist stammen)",
         "news_summary": "ANALYSE: [Fakten] + [Relevanz] + [Kurze, einfache Erklärung für Anfänger]",
         "age_in_minutes": 0, 
@@ -94,8 +98,16 @@ def run_collector_cycle():
         "action": "KAUFEN" | "VERKAUFEN" | "IGNORIEREN"
     }
 
+    SCHRITT 5: DER INTERNE DOPPELCHECK (SELF-CORRECTION)
+    Bevor du die Daten endgültig in das JSON-Format schreibst, lege dir deine geplante Ausgabe intern noch einmal selbst vor. Gleiche sie extrem kritisch mit den aktuell gefundenen News ab:
+    - Stimmen die Fakten und das Sentiment wirklich überein?
+    - Ist der Ticker zu 100% korrekt, handelbar und passt exakt zum betroffenen Asset?
+    Falls "Ja": Gib das JSON genau so weiter.
+    Falls "Nein": Drehe intern eine Korrekturschleife, überdenke die Daten und passe sie zwingend an (z.B. korrigiere den Ticker oder setze 'action' auf 'IGNORIEREN'), bevor du das finale JSON generierst.
+
     REGELN:
-    - 'action': Setze dies NUR auf KAUFEN oder VERKAUFEN, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6 ist. Ansonsten MUSS hier 'IGNORIEREN' stehen.
+    - 'ticker': Du MUSST ein exaktes, offiziell handelbares Börsenkürzel (Ticker) nennen (z.B. AAPL, MSFT, BTC, RHM.DE). Verwende KEINE allgemeinen Begriffe wie "USA Equities", "Märkte" oder "NONE". Wenn es um einen Index oder einen allgemeinen Markt geht, MUSS ein passender handelbarer ETF (z.B. SPY für S&P 500, QQQ für Nasdaq) genannt werden.
+    - 'action': Setze dies NUR auf KAUFEN oder VERKAUFEN, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6 ist UND ein exakter, handelbarer Ticker im Feld 'ticker' definiert wurde. Wenn kein eindeutiges Wertpapier/ETF genannt wird oder die News zu allgemein ist, MUSS die action 'IGNORIEREN' sein.
     - WICHTIG: Auch wenn du 'IGNORIEREN' wählst, fülle das JSON komplett aus, damit die Datenbank lückenlos bleibt.
     """
 
