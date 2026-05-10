@@ -16,9 +16,9 @@ LOG_FILE = "signals_log.csv"
 
 # --- 2. MODEL-KASKADE ---
 MODELS_TO_TRY = [
-    "gemini-3.1-pro",                    # Prio 1 (Dein Favorit, aktuell im 429-Limit)
-    "gemini-2.0-flash-thinking-preview", # Prio 2 (Das "Denker"-Modell)
-    "gemini-1.5-flash"                   # Prio 3 (Das "Unkaputtbare" Backup)
+    "gemini-3.1-pro-preview",    # Prio 1: Maximale Intelligenz (State-of-the-art)
+    "gemini-2.5-pro",            # Prio 2: Stabiler Allrounder mit hohem IQ
+    "gemini-2.5-flash"           # Prio 3: Ultraschnelles Backup (der neue Standard)
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, url, summary, model_used):
