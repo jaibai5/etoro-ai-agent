@@ -16,10 +16,11 @@ LOG_FILE = "signals_log.csv"
 
 # --- 2. DIE POWER-KASKADE (5 Stufen für maximale Ausfallsicherheit) ---
 MODELS_TO_TRY = [
-    "gemini-flash-latest"        # Stufe 1
-    "gemini-3.1-flash"           # Stufe 2
-    "gemini-2.5-flash",          # Stufe 3
-
+    "gemini-pro-latest",         # Stufe 1: Der stabile Pro-Standard-Endpunkt
+    "gemini-3.1-pro-preview",    # Stufe 2: Das neueste Spitzenmodell
+    "gemini-2.5-pro",            # Stufe 3: Die bewährte 2026-Logik-Maschine
+    "gemini-flash-latest"        # Stufe 4: Der Notausgang
+    "gemini-2.5-flash",          # Stufe 5: Schnell & reflektierend (Fallback)
 ]
 
 def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, url, summary, model_used):
