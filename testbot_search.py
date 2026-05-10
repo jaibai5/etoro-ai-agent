@@ -42,33 +42,38 @@ def run_collector_cycle():
     # Der isolierte Prüf-Prompt (Fokus auf Marktsuche ohne Portfolio-Abhängigkeit)
     prompt = """
     SYSTEM-ANWEISUNG:
-    Du bist ein neutraler, hochpräziser Daten-Analyst für den Finanzmarkt.
+    Du bist ein globaler Elite-Datenanalyst für den Finanzmarkt (Asien, Europa, USA und Krypto). Deine Spezialität ist das Abgreifen von aufgestauter Wochenend-Spannung (Weekend Gaps) zum jeweiligen lokalen Börsenstart.
     
-    SCHRITT 1: DIE DUALE LIVE-SUCHE
-    Durchsuche Google Search nach echten, marktbewegenden Eilmeldungen der letzten 30 bis 60 Minuten:
-    1. Offizielle Statements von Donald Trump (Zölle, Notenbank, Geopolitik).
-    2. Eilmeldungen von REUTERS, BLOOMBERG, WSJ oder CNBC zu Makro-Daten, Unternehmenszahlen oder Krypto-Spotmärkten.
+    SCHRITT 1: DIE GLOBALE LIVE-SUCHE
+    Durchsuche Google Search nach den massivsten Eilmeldungen und politischen Treibern. Beachte die globalen Zeitzonen:
+    1. ASIEN: News zum Trump-Xi-Gipfel, TSMC, Samsung, China-Handel oder dem Nikkei/Kospi.
+    2. EUROPA: Eilmeldungen zu europäischen Banken, DAX-Konzernen, EZB-Zinsen oder geopolitischen Auswirkungen auf den Export.
+    3. USA: Offizielle Statements von Donald Trump, US-Makrodaten oder Tech-Giganten.
+    4. KRYPTO: Der 24/7 Spotmarkt.
 
-    SCHRITT 2: FILTERUNG
-    - Zeitfilter: Meldungen, deren tatsächliche Veröffentlichung länger als 60 Minuten zurückliegt, MÜSSEN ignoriert werden (Alpha-Verfall).
-    - Clickbait-Filter: Reißerische Überschriften ignorieren. Nur harte Fakten im Textkörper zählen.
+    SCHRITT 2: DIE WOCHENEND- & LÜCKEN-LOGIK (GAP RISK)
+    - Krypto-Assets (BTC, ETH): Handeln 24/7. Hier gilt immer ein strikter 60-Minuten-Verfall.
+    - Regulierte Aktien/ETFs weltweit: Wenn heute MONTAG ist (oder Sonntagabend vor den asiatischen Öffnungen), ignoriere das Alter der Nachricht. Meldungen vom gesamten Wochenende MÜSSEN akkumuliert und als brandheiß eingestuft werden, da sich die Lücke erst zur jeweiligen lokalen Eröffnung entladen kann:
+      * Asien-Assets (z.B. TSM, FXI) entladen sich ab ca. 02:00 Uhr nachts (MEZ).
+      * Europa-Assets (z.B. EWG, SAP) entladen sich ab 09:00 Uhr morgens (MEZ).
+      * US-Assets (z.B. NVDA, SPY) entladen sich ab 15:30 Uhr (MEZ).
 
     SCHRITT 3: JSON-AUSGABE
-    Finde exakt die EINE relevanteste, frische Nachricht und antworte AUSSCHLIESSLICH in diesem JSON-Format:
+    Finde global exakt die EINE Nachricht mit dem absolut höchsten Lücken- oder Intraday-Potenzial und antworte AUSSCHLIESSLICH in diesem JSON-Format:
     {
         "signal_found": true,
-        "signal_type": "TRUMP_DIRECT" oder "GENERAL_MACRO",
-        "ticker": "SYMBOL",
+        "market_region": "ASIA" oder "EUROPE" oder "USA" oder "CRYPTO",
+        "ticker": "OFFIZIELLES_SYMBOL", 
         "news_summary": "Faktenbasierte Zusammenfassung ohne Clickbait",
-        "age_in_minutes": 15,
-        "sentiment_score": 0.8, 
+        "age_in_minutes": 1150, 
+        "sentiment_score": 0.9, 
         "confidence": 95,
         "action": "KAUFEN" oder "VERKAUFEN" oder "IGNORIEREN"
     }
 
     REGELN:
-    - 'action': Nur auf KAUFEN oder VERKAUFEN setzen, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6 ist. Ansonsten IMMER 'IGNORIEREN'.
-    - Wenn keine relevanten News existieren, setze signal_found auf false.
+    - 'action': Nur auf KAUFEN/VERKAUFEN setzen, wenn confidence >= 85 UND abs(sentiment_score) >= 0.6.
+    - Wähle als 'ticker' das am besten passende, international handelbare Symbol (z.B. TSM für Taiwan Semiconductor, EWG für Deutschland, FXI für China, oder direkte Aktien-Ticker).
     """
 
     try:
