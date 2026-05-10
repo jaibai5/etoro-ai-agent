@@ -2,7 +2,7 @@ name: Gemini Data Collector
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Läuft ressourcenschonend alle 15 Minuten
+    - cron: '*/10 * * * *'  # Läuft ressourcenschonend alle 10 Minuten
   workflow_dispatch:        # Erlaubt manuellen Start per Klick
 
 permissions:
