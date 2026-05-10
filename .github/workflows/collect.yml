@@ -26,7 +26,7 @@ jobs:
       - name: Gemini Prüf-Bot ausführen
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python bot.py
+        run: python testbot_search.py
 
       - name: Ergebnisse ins Repository speichern (Commit & Push)
         run: |
