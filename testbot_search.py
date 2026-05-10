@@ -2,7 +2,7 @@ import os
 import sys
 import json
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 from google import genai
 from google.genai import types
 
@@ -35,24 +35,41 @@ def sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter,
     print(f"💾 Log-Eintrag ({model_used}) gesichert.")
 
 def run_collector_cycle():
-    print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starte globalen Radar-Zyklus...")
+    # Update: Nutzt jetzt timezone.utc anstelle des veralteten utcnow()
+    aktuelle_zeit = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    print(f"\n[{aktuelle_zeit}] Starte globalen Radar-Zyklus mit Premium-Quellen-Whitelist...")
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     grounding_tool = types.Tool(google_search=types.GoogleSearch())
     
-    # --- DEIN VOLLSTÄNDIGER, UNGEKÜRZTER GLOBAL-RADAR PROMPT ---
+    # --- DEIN ANGEPASSTER PROMPT MIT DEN 20 QUELLEN PRO REGION ---
     prompt = """
     SYSTEM-ANWEISUNG:
     Du bist ein globaler Elite-Datenanalyst für den Finanzmarkt (Asien, Europa, USA und Krypto). Deine Aufgabe ist es, das Marktgeschehen LÜCKENLOS zu dokumentieren. Du musst auch dann einen vollständigen Bericht abgeben, wenn der Markt völlig ruhig ist oder du ein Signal ablehnst.
 
-    Erstelle die Zusammenfassung (news_summary) auf deutsch.
+    WICHTIGE QUELLEN-REGEL (WHITELIST):
+    Du DARFST NUR Nachrichten und Daten von den folgenden verifizierten Quellen beziehen. Optimiere deine Google-Suchanfragen zwingend (z.B. mit 'site:domain.com'), um ausschließlich diese Premium-Seiten zu durchsuchen:
+
+    1. USA (Top 20):
+    bloomberg.com, reuters.com, wsj.com, cnbc.com, ft.com, marketwatch.com, finance.yahoo.com, barrons.com, forbes.com, sec.gov, federalreserve.gov, nytimes.com/section/business, washingtonpost.com/business, investors.com, economist.com, spglobal.com, moodys.com, fitchratings.com, benzinga.com, seekingalpha.com
+
+    2. EUROPA (Top 20):
+    ft.com, reuters.com/business/europe, bloomberg.com/europe, ecb.europa.eu, handelsblatt.com, faz.net/aktuell/wirtschaft, wiwo.de, lesechos.fr, nzz.ch/wirtschaft, theguardian.com/business, bbc.com/news/business, euronews.com/business, bankofengland.co.uk, bundesbank.de, boerse.ard.de, boersen-zeitung.de, finanzen.net, deraktionaer.de, de.investing.com, marketscreener.com
+
+    3. ASIEN (Top 20):
+    asia.nikkei.com, scmp.com, reuters.com/business/asia-pacific, bloomberg.com/asia, cnbc.com/asia-world, straitstimes.com/business, channelnewsasia.com/business, boj.or.jp, pbc.gov.cn, japantimes.co.jp/news/business, english.news.cn/business, caixinglobal.com, livemint.com, economictimes.indiatimes.com, yomiuri.co.jp/economy, asahi.com/business, hkex.com.hk, sgx.com, adb.org, thediplomat.com/category/economy
+
+    4. KRYPTO (Top 20):
+    coindesk.com, cointelegraph.com, decrypt.co, theblock.co, cryptoslate.com, bitcoinmagazine.com, blockworks.co, beincrypto.com, u.today, coingape.com, messari.io, nansen.ai, glassnode.com, research.binance.com, sec.gov, cftc.gov, coinmarketcap.com, defillama.com, ambcrypto.com, cryptobriefing.com
+
+    Erstelle die Zusammenfassung (news_summary) auf deutsch. WICHTIG: Füge in der 'news_summary' neben der fachlichen Analyse zwingend eine kurze, leicht verständliche Erklärung in einfachen Worten für nicht finanzbewanderte Menschen hinzu.
     
     SCHRITT 1: DIE GLOBALE LIVE-SUCHE & ANALYSE
-    Durchsuche Google Search nach den massivsten Eilmeldungen und politischen Treibern. Beachte die globalen Zeitzonen:
-    1. ASIEN: News zum Trump-Xi-Gipfel, TSMC, Samsung, China-Handel oder dem Nikkei/Kospi.
-    2. EUROPA: Eilmeldungen zu europäischen Banken, DAX-Konzernen, EZB-Zinsen oder geopolitischen Auswirkungen auf den Export.
-    3. USA: Offizielle Statements von Donald Trump, US-Makrodaten oder Tech-Giganten (Nvidia, Apple, etc.).
-    4. KRYPTO: Der 24/7 Spotmarkt (Hacks, ETF-Flows, regulatorische Urteile).
+    Durchsuche Google Search nach den massivsten Eilmeldungen, makroökonomischen Daten und politischen Treibern unter strikter Nutzung der Whitelist-Quellen. Beachte die globalen Zeitzonen:
+    1. ASIEN: Geldpolitik (BoJ, PBoC), Makrodaten aus China/Japan, globale Tech-Lieferketten und asiatische Leitindizes.
+    2. EUROPA: Zinsentscheide der EZB/BoE, regulatorische Entscheidungen, geopolitische Entwicklungen und Quartalszahlen großer europäischer Konzerne.
+    3. USA: FED-Entscheidungen, US-Arbeitsmarkt- und Inflationsdaten, offizielle Regierungserklärungen (insbesondere marktbewegende Aussagen oder Posts von Donald Trump) sowie News der Wall-Street-Schwergewichte.
+    4. KRYPTO: Signifikante On-Chain-Bewegungen, institutionelle Flows (z.B. ETFs), globale regulatorische Urteile und sicherheitsrelevante Vorfälle (Hacks).
 
     SCHRITT 2: SELBST-REFLEKTION & TIEFENPRÜFUNG
     Bevor du eine Entscheidung triffst, prüfe kritisch:
@@ -73,8 +90,8 @@ def run_collector_cycle():
         "signal_found": true,
         "market_region": "ASIA" | "EUROPE" | "USA" | "CRYPTO" | "NONE",
         "ticker": "SYMBOL",
-        "source_name": "NAME DER NEWS-QUELLE",
-        "news_summary": "ANALYSE: [Fakten] + [Relevanz]",
+        "source_name": "NAME DER NEWS-QUELLE (Muss aus der Whitelist stammen)",
+        "news_summary": "ANALYSE: [Fakten] + [Relevanz] + [Kurze, einfache Erklärung für Anfänger]",
         "age_in_minutes": 0, 
         "sentiment_score": 0.0, 
         "confidence": 0,
@@ -124,7 +141,6 @@ def run_collector_cycle():
         
         result = json.loads(raw_text)
         
-        # FIX: source_name extrahieren
         source_name = result.get("source_name", "Unbekannt")
         ticker = result.get("ticker", "-")
         action = result.get("action", "IGNORIEREN")
@@ -132,7 +148,9 @@ def run_collector_cycle():
         alter = result.get("age_in_minutes", 0)
         summary = result.get("news_summary", "Keine Ereignisse")
         region = result.get("market_region", "NONE")
-        zeitstempel = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Zeitstempel Fix
+        zeitstempel = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
         echte_url = "Keine Web-URL indiziert"
         if response.candidates and response.candidates[0].grounding_metadata:
@@ -143,7 +161,6 @@ def run_collector_cycle():
                         echte_url = chunk.web.uri
                         break 
         
-        # FIX: Alle 10 Argumente übergeben (source_name hinzugefügt)
         sichere_signal_in_csv(zeitstempel, region, ticker, action, sentiment, alter, source_name, echte_url, summary, used_model_name)
 
     except Exception as e:
