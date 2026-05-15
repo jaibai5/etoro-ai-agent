@@ -1,9 +1,9 @@
 name: Gemini Data Collector
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'  # Läuft ressourcenschonend alle 10 Minuten
-  workflow_dispatch:        # Erlaubt manuellen Start per Klick
+ # schedule:
+   # - cron: '*/10 * * * *'  # Läuft ressourcenschonend alle 10 Minuten
+#  workflow_dispatch:        # Erlaubt manuellen Start per Klick
 
 permissions:
   contents: write           # WICHTIG: Erlaubt dem Bot, die CSV-Datei ins Repo zu speichern
